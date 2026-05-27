@@ -1,0 +1,10 @@
+src/
+pkg/
+*.tar.gz
+*.tar.xz
+*.tgz
+*.tar.bz2
+*.tar.zst
+*.apk
+fvm-cache/
+server/.env

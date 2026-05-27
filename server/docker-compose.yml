@@ -1,0 +1,50 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: rustdesk-tailscale
+    environment:
+      TS_AUTHKEY: ${TS_AUTHKEY}
+      TS_HOSTNAME: ${TS_HOSTNAME:-rustdesk}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_EXTRA_ARGS: --accept-routes
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - /dev/net/tun:/dev/net/tun
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "tailscale", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
+
+  hbbs:
+    image: rustdesk/rustdesk-server:latest
+    container_name: rustdesk-hbbs
+    network_mode: "service:tailscale"
+    command: hbbs -r 127.0.0.1:21117 -k _  # ← FIXED: explicit relay + key enforcement
+    volumes:
+      - rustdesk-data:/root
+    depends_on:
+      tailscale:
+        condition: service_healthy
+    restart: unless-stopped
+
+  hbbr:
+    image: rustdesk/rustdesk-server:latest
+    container_name: rustdesk-hbbr
+    network_mode: "service:tailscale"
+    command: hbbr  # No -r needed for relay
+    volumes:
+      - rustdesk-data:/root
+    depends_on:
+      tailscale:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  tailscale-state:
+  rustdesk-data:
