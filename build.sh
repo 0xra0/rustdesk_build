@@ -16,7 +16,7 @@ startdir="${_scriptdir}"
 
 # ── makepkg helper stubs ──────────────────────────────────────────────────────
 msg()     { printf '\033[1;32m==> \033[0m\033[1m%s\033[0m\n' "$*"; }
-msg2()    { printf '\033[1;34m  -> \033[0m%s\n' "$*"; }
+msg2()    { printf '\033[1;34m  -> \033[0m%s\n' "$*" >&2; }
 warning() { printf '\033[1;33m==> WARNING: \033[0m%s\n' "$*" >&2; }
 error()   { printf '\033[1;31m==> ERROR: \033[0m%s\n' "$*" >&2; return 1; }
 
@@ -124,7 +124,7 @@ _fn_hwcodec() {
 # ── Package identity ──────────────────────────────────────────────────────────
 _pkgname='rustdesk'
 pkgname="${_pkgname}"
-_pkgver='1.4.6'
+_pkgver='1.4.7'
 pkgver="${_pkgver//-/.}"
 pkgrel=1
 _sfx=''
@@ -144,6 +144,7 @@ _HBB=(
   '1.4.4:20251117-a86eda749e6fa33c282bab680e6b504d3ad87539'
   '1.4.5:20251117-073403edbf1fffcb3acfe8cbe7582ee873b23398'
   '1.4.6:20260302-48c37de3e6c4e399af6f51ca20e8e3e1fd037976'
+  '1.4.7:20260601-df6badca5bf81b4e9836256cf8e31c993ad70dd1'
 )
 _pkgverhbb="$(_fn_VCL "${_pkgver}" -eq "${_HBB[@]}")"; unset _HBB
 test "$(_vercmp "${_pkgver}" '1.3.7')" -lt 0 -o ! -z "${_pkgverhbb}" \
@@ -159,6 +160,7 @@ _patches=(
   #'0001-extended_text-drop-version-for-flutter.3.22.3@rustdesk.patch'
   '0002-screen_retriever@rustdesk.patch'
   #'0004-bindgen@rustdesk.patch'
+  '0005-bindgen-clang22@rustdesk.patch'
 )
 
 # ── Source array ─────────────────────────────────────────────────────────────
@@ -489,6 +491,24 @@ EOF
      set +x
      false
   fi
+
+  # Refresh Cargo.lock for any patched Cargo.toml changes (e.g. bindgen version bump).
+  # cargo build --locked in build.py requires the lock to match the manifests.
+  set +u; msg2 'cargo update (bindgen)'; set -u
+  _bindgen_err="$(mktemp)"
+  if ! cargo update -p bindgen 2>"${_bindgen_err}"; then
+    if grep -q "specification \`bindgen\` is ambiguous" "${_bindgen_err}"; then
+      while IFS= read -r _spec; do
+        msg2 "cargo update -p ${_spec}"
+        cargo update -p "${_spec}"
+      done < <(grep -oE 'bindgen@[0-9]+\.[0-9]+\.[0-9]+' "${_bindgen_err}" | sort -u)
+    else
+      cat "${_bindgen_err}" >&2
+      rm -f "${_bindgen_err}"
+      false
+    fi
+  fi
+  rm -f "${_bindgen_err}"
 }
 
 build() {

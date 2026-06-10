@@ -21,9 +21,9 @@ cd "${_scriptdir}"
 # ── Versions (must match CI) ──────────────────────────────────────────────────
 _RUST_VERSION='1.75'
 _CARGO_NDK_VERSION='3.1.2'
-_NDK_VERSION='r27c'
+_NDK_VERSION='r28c'
 _FLUTTER_VERSION='3.24.5'
-_PKGVER='1.4.6'
+_PKGVER='1.4.7'
 _FLUTTER_PATCH='.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff'
 _FRBVER='1.80.1'
 
@@ -87,21 +87,32 @@ export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME}}"
 msg2 "SDK: ${ANDROID_SDK_ROOT}"
 
 # ── Auto-detect JAVA_HOME (JDK 17) ───────────────────────────────────────────
-if [ -z "${JAVA_HOME:-}" ]; then
-  for _c in \
-      "/usr/lib/jvm/java-17-openjdk-amd64" \
-      "/usr/lib/jvm/java-17-openjdk" \
-      "/usr/lib/jvm/temurin-17" \
-      "/opt/jdk-17"; do
-    if [ -d "${_c}" ]; then
-      export JAVA_HOME="${_c}"
-      break
-    fi
-  done
-fi
+# Always force JDK 17: Gradle 7.6 supports Java ≤ 20, and an ambient
+# JAVA_HOME pointing at Java 21+ causes "Unsupported class file major version 65".
+JAVA_HOME=''
+for _c in \
+    "/usr/lib/jvm/java-17-openjdk-amd64" \
+    "/usr/lib/jvm/java-17-openjdk" \
+    "/usr/lib/jvm/temurin-17" \
+    "/opt/jdk-17"; do
+  if [ -d "${_c}" ]; then
+    export JAVA_HOME="${_c}"
+    break
+  fi
+done
 [ -d "${JAVA_HOME:-}" ] || error "JDK 17 not found. Set JAVA_HOME."
 export PATH="${JAVA_HOME}/bin:${PATH}"
 msg2 "JAVA_HOME: ${JAVA_HOME}"
+
+# ── Prefer local flutter (extracted by build.sh) over system flutter ─────────
+# The system flutter is typically installed read-only (e.g. /usr/lib/flutter),
+# which causes Gradle to fail when it tries to create its project cache dir
+# inside flutter/packages/flutter_tools/gradle/.gradle/.
+_local_flutter="${_scriptdir}/src/flutter/bin"
+if [ -x "${_local_flutter}/flutter" ]; then
+  export PATH="${_local_flutter}:${PATH}"
+  msg2 "Using local flutter: ${_local_flutter}"
+fi
 
 # ── Verify flutter ────────────────────────────────────────────────────────────
 command -v flutter &>/dev/null || error "flutter not found on PATH."
@@ -255,7 +266,7 @@ _build_target() {
     ANDROID_NDK_HOME="${ANDROID_NDK_HOME}" \
     ANDROID_NDK_ROOT="${ANDROID_NDK_HOME}" \
       cargo ndk \
-        --platform 21 \
+        --platform 22 \
         --target "${_rust_target}" \
         build --release --features "${_features}"
   )

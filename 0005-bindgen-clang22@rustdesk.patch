@@ -1,0 +1,23 @@
+diff -pNaru3 a/Cargo.toml b/Cargo.toml
+--- a/Cargo.toml	2026-06-05 18:43:56.529180801 +0300
++++ b/Cargo.toml	2026-06-05 18:43:56.532310271 +0300
+@@ -211,6 +211,7 @@
+ # This allows building and running on systems without libxdo installed (e.g., Wayland-only)
+ [patch.crates-io]
+ libxdo-sys = { path = "libs/libxdo-sys-stub" }
++bindgen = { git = "https://github.com/rust-lang/rust-bindgen", tag = "v0.72.1" }
+ 
+ [package.metadata.winres]
+ LegalCopyright = "Copyright © 2025 Purslane Ltd. All rights reserved."
+diff -pNaru3 a/libs/scrap/Cargo.toml b/libs/scrap/Cargo.toml
+--- a/libs/scrap/Cargo.toml	2026-06-05 18:43:57.906953129 +0300
++++ b/libs/scrap/Cargo.toml	2026-06-05 18:43:57.910625467 +0300
+@@ -48,7 +48,7 @@
+ 
+ [build-dependencies]
+ target_build_utils = "0.3"
+-bindgen = "0.65"
++bindgen = "0.72.1"
+ pkg-config = { version = "0.3.27", optional = true }
+ 
+ [target.'cfg(target_os = "linux")'.dependencies]
