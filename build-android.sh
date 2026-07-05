@@ -23,7 +23,7 @@ _RUST_VERSION='1.75'
 _CARGO_NDK_VERSION='3.1.2'
 _NDK_VERSION='r28c'
 _FLUTTER_VERSION='3.24.5'
-_PKGVER='1.4.7'
+_PKGVER='1.4.8'
 _FLUTTER_PATCH='.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff'
 _FRBVER='1.80.1'
 

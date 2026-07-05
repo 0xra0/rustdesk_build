@@ -124,7 +124,7 @@ _fn_hwcodec() {
 # ── Package identity ──────────────────────────────────────────────────────────
 _pkgname='rustdesk'
 pkgname="${_pkgname}"
-_pkgver='1.4.7'
+_pkgver='1.4.8'
 pkgver="${_pkgver//-/.}"
 pkgrel=1
 _sfx=''
@@ -145,6 +145,7 @@ _HBB=(
   '1.4.5:20251117-073403edbf1fffcb3acfe8cbe7582ee873b23398'
   '1.4.6:20260302-48c37de3e6c4e399af6f51ca20e8e3e1fd037976'
   '1.4.7:20260601-df6badca5bf81b4e9836256cf8e31c993ad70dd1'
+  '1.4.8:20260604-387603f47cbb15c0d3dc3d67ae3396d3eb707daf'
 )
 _pkgverhbb="$(_fn_VCL "${_pkgver}" -eq "${_HBB[@]}")"; unset _HBB
 test "$(_vercmp "${_pkgver}" '1.3.7')" -lt 0 -o ! -z "${_pkgverhbb}" \

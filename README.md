@@ -17,7 +17,7 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 
 ## Current version
 
-**RustDesk 1.4.7** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `120deac3`
+**RustDesk 1.4.8** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `120deac3`
 
 ## Linux build
 
