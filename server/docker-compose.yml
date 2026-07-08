@@ -1,6 +1,6 @@
 services:
   tailscale:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.98.8
     container_name: rustdesk-tailscale
     environment:
       TS_AUTHKEY: ${TS_AUTHKEY}
@@ -22,7 +22,7 @@ services:
       start_period: 30s
 
   hbbs:
-    image: rustdesk/rustdesk-server:latest
+    image: rustdesk/rustdesk-server:1.1.15
     container_name: rustdesk-hbbs
     network_mode: "service:tailscale"
     command: hbbs -r 127.0.0.1:21117 -k _  # ← FIXED: explicit relay + key enforcement
@@ -34,7 +34,7 @@ services:
     restart: unless-stopped
 
   hbbr:
-    image: rustdesk/rustdesk-server:latest
+    image: rustdesk/rustdesk-server:1.1.15
     container_name: rustdesk-hbbr
     network_mode: "service:tailscale"
     command: hbbr  # No -r needed for relay
