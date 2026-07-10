@@ -580,6 +580,44 @@ package() {
 
   install -Dm0644 "res/${_pkgname}.service" -t "${pkgdir}/usr/lib/systemd/system/"
 
+  # ── runit service ───────────────────────────────────────────────────────────
+  # Upstream ships no runit files. Enable with:
+  #   ln -s /etc/sv/${_pkgname} /var/service/
+  install -Dm0755 /dev/stdin "${pkgdir}/etc/sv/${_pkgname}/run" << EOF
+#!/bin/sh
+exec 2>&1
+
+# start_os_service() blocks in the foreground, so runsv supervises this pid.
+export PULSE_LATENCY_MSEC=60
+export PIPEWIRE_LATENCY=1024/48000
+ulimit -n 100000
+
+exec /usr/bin/${_pkgname} --service
+EOF
+
+  install -Dm0755 /dev/stdin "${pkgdir}/etc/sv/${_pkgname}/finish" << EOF
+#!/bin/sh
+# --service spawns "--server"/"--tray" children that outlive it, the same reason
+# the systemd unit reaps them with pkill in ExecStop.
+pkill -f '${_pkgname} --' 2>/dev/null
+exit 0
+EOF
+
+  install -Dm0755 /dev/stdin "${pkgdir}/etc/sv/${_pkgname}/control/t" << EOF
+#!/bin/sh
+# ctrlc is built without its "termination" feature, so ${_pkgname} traps SIGINT
+# but not SIGTERM. Send INT so start_os_service() runs its shutdown path.
+# Exiting 0 tells runsv to skip the TERM it would otherwise send; if the kill
+# fails we exit non-zero and runsv falls back to TERM.
+kill -INT "\$(cat ./supervise/pid)" 2>/dev/null
+EOF
+
+  install -Dm0755 /dev/stdin "${pkgdir}/etc/sv/${_pkgname}/log/run" << EOF
+#!/bin/sh
+exec vlogger -t ${_pkgname} -p daemon
+EOF
+  # ── end runit service ───────────────────────────────────────────────────────
+
   install -Dm0644 'res/32x32.png' "${pkgdir}/usr/share/icons/hicolor/32x32/apps/${_pkgname}.png"
   install -Dm0644 'res/128x128.png' "${pkgdir}/usr/share/icons/hicolor/128x128/apps/${_pkgname}.png"
   install -Dm0644 'res/128x128@2x.png' "${pkgdir}/usr/share/icons/hicolor/256x256/apps/${_pkgname}.png"

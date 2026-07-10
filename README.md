@@ -38,7 +38,11 @@ sudo unzip -o rustdesk-1.4.8-x86_64.zip -d /
 To run RustDesk as a background service:
 
 ```bash
+# systemd
 sudo systemctl enable --now rustdesk
+
+# runit (Void/Artix) — the zip also ships /etc/sv/rustdesk
+sudo ln -s /etc/sv/rustdesk /var/service/
 ```
 
 ## Linux build
