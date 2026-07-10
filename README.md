@@ -1,15 +1,16 @@
 # RustDesk Build
 
-Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an open-source remote desktop application written in Rust. Supports both Linux (Arch/makepkg) and Android (aarch64/armv7/x86_64) targets, with hardware codec (H.264/H.265) support via vcpkg + FFmpeg.
+Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an open-source remote desktop application written in Rust. Supports Linux (x86_64) and Android (aarch64/armv7/x86_64) targets, with hardware codec (H.264/H.265) support via vcpkg + FFmpeg.
 
 ## Contents
 
 | File | Purpose |
 |------|---------|
-| `PKGBUILD` | Arch Linux package build definition |
-| `build.sh` | Standalone Linux build script (no makepkg required) |
+| `build.sh` | Linux build script |
 | `build-android.sh` | Android APK build script |
 | `server/docker-compose.yml` | Self-hosted server stack (hbbs + hbbr behind Tailscale) |
+| `server/.env.example` | Template for the server's `.env` |
+| `server/id_ed25519.pub` | Server public key, used as the client's **Key** field |
 | `0000-disable-update-check@rustdesk.patch` | Disables the built-in update nag |
 | `0002-screen_retriever@rustdesk.patch` | Screen retriever compatibility fix |
 | `0003-mkvparser.cc-cstdint.patch` | C++17 `<cstdint>` include fix for mkvparser |
@@ -19,9 +20,32 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 
 **RustDesk 1.4.8** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `120deac3`
 
+## Download
+
+Prebuilt artifacts are attached to the [latest release](https://github.com/0xra0/rustdesk_build/releases/latest):
+
+| Asset | Target |
+|-------|--------|
+| `rustdesk-1.4.8-x86_64.zip` | Linux x86_64 |
+| `rustdesk-1.4.8-aarch64.apk` | Android aarch64 |
+
+The Linux zip contains a `usr/` tree and its `usr/bin/rustdesk` is an absolute symlink, so it must be extracted at the filesystem root:
+
+```bash
+sudo unzip -o rustdesk-1.4.8-x86_64.zip -d /
+```
+
+To run RustDesk as a background service:
+
+```bash
+sudo systemctl enable --now rustdesk
+```
+
 ## Linux build
 
 ### Prerequisites
+
+Dependencies are listed as Arch package names; translate them for other distributions.
 
 ```
 pacman -S --needed git cmake gcc curl wget yasm nasm zip make pkg-config clang \
@@ -29,21 +53,15 @@ pacman -S --needed git cmake gcc curl wget yasm nasm zip make pkg-config clang \
     ffnvcodec-headers amf-headers
 ```
 
-### Build with makepkg
+### Build
 
-```bash
-makepkg -si
-```
-
-### Build without makepkg (standalone)
-
-Downloads all sources automatically:
+`build.sh` downloads all sources automatically:
 
 ```bash
 bash build.sh
 ```
 
-The packaged bundle lands in `pkg/usr/lib/rustdesk/`.
+The packaged bundle lands in `pkg/`, laid out as a `usr/` tree matching the release zip.
 
 ## Android build
 
@@ -67,12 +85,19 @@ APKs are written to the script directory.
 
 The `server/` directory contains a Docker Compose stack that runs the RustDesk relay and rendezvous server behind [Tailscale](https://tailscale.com/), so no public ports need to be exposed.
 
+Copy the environment template and fill in a [Tailscale auth key](https://login.tailscale.com/admin/settings/keys):
+
 ```bash
 cd server
-TS_AUTHKEY=<your-tailscale-auth-key> docker compose up -d
+cp .env.example .env
+$EDITOR .env
+docker compose up -d
 ```
 
-Set the RustDesk client's ID/relay server to the Tailscale hostname (default: `rustdesk`).
+Then, in the RustDesk client:
+
+- Set **ID/Relay Server** to the Tailscale hostname (`TS_HOSTNAME`, default `rustdesk`).
+- Set **Key** to the contents of `server/id_ed25519.pub` — `hbbs` runs with `-k _`, so clients that don't present the key are rejected.
 
 ## Hardware codecs (H.264 / H.265)
 
