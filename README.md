@@ -18,7 +18,7 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 
 ## Current version
 
-**RustDesk 1.4.8** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `120deac3`
+**RustDesk 1.4.9** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `120deac3`
 
 ## Download
 
@@ -26,13 +26,13 @@ Prebuilt artifacts are attached to the [latest release](https://github.com/0xra0
 
 | Asset | Target |
 |-------|--------|
-| `rustdesk-1.4.8-x86_64.zip` | Linux x86_64 |
-| `rustdesk-1.4.8-aarch64.apk` | Android aarch64 |
+| `rustdesk-1.4.9-x86_64.zip` | Linux x86_64 |
+| `rustdesk-1.4.9-aarch64.apk` | Android aarch64 |
 
 The Linux zip contains a `usr/` tree and its `usr/bin/rustdesk` is an absolute symlink, so it must be extracted at the filesystem root:
 
 ```bash
-sudo unzip -o rustdesk-1.4.8-x86_64.zip -d /
+sudo unzip -o rustdesk-1.4.9-x86_64.zip -d /
 ```
 
 To run RustDesk as a background service:
