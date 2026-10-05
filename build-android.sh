@@ -23,7 +23,7 @@ _RUST_VERSION='1.75'
 _CARGO_NDK_VERSION='3.1.2'
 _NDK_VERSION='r28c'
 _FLUTTER_VERSION='3.24.5'
-_PKGVER='1.4.9'
+_PKGVER='1.5.0'
 _FLUTTER_PATCH='.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff'
 _FRBVER='1.80.1'
 
@@ -47,25 +47,32 @@ case "${_arg}" in
 esac
 
 # ── Auto-detect Android NDK ───────────────────────────────────────────────────
-if [ -z "${ANDROID_NDK_HOME:-}" ]; then
-  # Try exact letter-version first, then any installed NDK 27.x
-  for _c in \
-      "${HOME}/Android/Sdk/ndk/${_NDK_VERSION}" \
-      "${HOME}/android/ndk/${_NDK_VERSION}" \
-      "/opt/android-ndk-${_NDK_VERSION}" \
-      "/opt/android/ndk/${_NDK_VERSION}"; do
-    if [ -d "${_c}" ]; then
-      export ANDROID_NDK_HOME="${_c}"
-      break
-    fi
-  done
-  # Fallback: any NDK 27.x under ~/Android/Sdk/ndk/
-  if [ -z "${ANDROID_NDK_HOME:-}" ] && [ -d "${HOME}/Android/Sdk/ndk" ]; then
-    _c="$(find "${HOME}/Android/Sdk/ndk" -maxdepth 1 -name '27.*' -type d | sort -V | tail -1)"
-    [ -d "${_c:-}" ] && export ANDROID_NDK_HOME="${_c}"
+_is_ndk_root() { [ -f "${1:-}/build/cmake/android.toolchain.cmake" ]; }
+
+# A common mistake is setting ANDROID_NDK_HOME to the SDK root. Use its r28c
+# installation and preserve the SDK path for Gradle.
+if [ -n "${ANDROID_NDK_HOME:-}" ] && ! _is_ndk_root "${ANDROID_NDK_HOME}"; then
+  if [ -d "${ANDROID_NDK_HOME}/ndk" ]; then
+    export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_NDK_HOME}}"
+    unset ANDROID_NDK_HOME
+  else
+    error "ANDROID_NDK_HOME must point to an NDK directory containing build/cmake/android.toolchain.cmake"
   fi
 fi
-[ -d "${ANDROID_NDK_HOME:-}" ] || error "Android NDK ${_NDK_VERSION} not found. Set ANDROID_NDK_HOME."
+
+if [ -z "${ANDROID_NDK_HOME:-}" ]; then
+  for _sdk in "${ANDROID_SDK_ROOT:-}" "${ANDROID_HOME:-}" \
+      "${HOME}/Android/Sdk" "${HOME}/android/sdk" "/opt/android-sdk" "/opt/android/sdk"; do
+    [ -d "${_sdk:-}/ndk" ] || continue
+    for _c in "${_sdk}"/ndk/28.2.*; do
+      if _is_ndk_root "${_c}"; then
+        export ANDROID_NDK_HOME="${_c}"
+        break 2
+      fi
+    done
+  done
+fi
+_is_ndk_root "${ANDROID_NDK_HOME:-}" || error "Android NDK ${_NDK_VERSION} not found. Set ANDROID_NDK_HOME to its versioned directory."
 export ANDROID_NDK_ROOT="${ANDROID_NDK_HOME}"
 msg2 "NDK: ${ANDROID_NDK_HOME}"
 
@@ -166,7 +173,7 @@ fi
 
 # ── vcpkg for Android ─────────────────────────────────────────────────────────
 # Locate the vcpkg directory extracted by build.sh
-_VCPKG_COMMIT='120deac3062162151622ca4860575a33844ba10b'
+_VCPKG_COMMIT='9e593bb18ea69cc5095e012465dcd675a822ed0d'
 _srcdirvc="${_scriptdir}/src/vcpkg-${_VCPKG_COMMIT}"
 [ -d "${_srcdirvc}" ] || error "vcpkg not found at ${_srcdirvc}. Run build.sh prepare step first."
 export VCPKG_ROOT="${_srcdirvc}"
@@ -266,9 +273,9 @@ _build_target() {
     ANDROID_NDK_HOME="${ANDROID_NDK_HOME}" \
     ANDROID_NDK_ROOT="${ANDROID_NDK_HOME}" \
       cargo ndk \
-        --platform 22 \
+        --platform 21 \
         --target "${_rust_target}" \
-        build --release --features "${_features}"
+        build --locked --release --features "${_features}"
   )
 
   # Copy .so into jniLibs

@@ -124,7 +124,7 @@ _fn_hwcodec() {
 # ── Package identity ──────────────────────────────────────────────────────────
 _pkgname='rustdesk'
 pkgname="${_pkgname}"
-_pkgver='1.4.9'
+_pkgver='1.5.0'
 pkgver="${_pkgver//-/.}"
 pkgrel=1
 _sfx=''
@@ -147,6 +147,7 @@ _HBB=(
   '1.4.7:20260601-df6badca5bf81b4e9836256cf8e31c993ad70dd1'
   '1.4.8:20260604-387603f47cbb15c0d3dc3d67ae3396d3eb707daf'
   '1.4.9:20260702-7e1c392c62d39c364127307cd408421dd5f8cfb0'
+  '1.5.0:20260923-229b904508364c8997aad0fb5af57effac859f60'
 )
 _pkgverhbb="$(_fn_VCL "${_pkgver}" -eq "${_HBB[@]}")"; unset _HBB
 test "$(_vercmp "${_pkgver}" '1.3.7')" -lt 0 -o ! -z "${_pkgverhbb}" \
@@ -155,14 +156,13 @@ test "$(_vercmp "${_pkgver}" '1.3.7')" -lt 0 -o ! -z "${_pkgverhbb}" \
 _fn_hwcodec "${_pkgver}"
 
 # _dpr is compared against res/PKGBUILD::depends inside _dpr_check()
-_dpr=('gtk3' 'xdotool' 'libxcb' 'libxfixes' 'alsa-lib' 'libva' 'libappindicator-gtk3' 'pam' 'gst-plugins-base' 'gst-plugin-pipewire')
+_dpr=('gtk3' 'xdotool' 'libxcb' 'libxfixes' 'alsa-lib' 'libva' 'libappindicator-gtk3' 'gst-plugins-base' 'gst-plugin-pipewire')
 
 _patches=(
   '0000-disable-update-check@rustdesk.patch'
   #'0001-extended_text-drop-version-for-flutter.3.22.3@rustdesk.patch'
   '0002-screen_retriever@rustdesk.patch'
   #'0004-bindgen@rustdesk.patch'
-  '0005-bindgen-clang22@rustdesk.patch'
 )
 
 # ── Source array ─────────────────────────────────────────────────────────────
@@ -190,6 +190,7 @@ _VCL=(
   '1.3.6:#commit=20241115-b2cb0da531c2f1f740045bfe7c4dac59f0b2b69c'
   '1.3.8:#commit=20250113-6f29f12e82a8293156836ad81cc9bf5af41fe836'
   '1.4.2:#commit=20250827-120deac3062162151622ca4860575a33844ba10b'
+  '1.5.0:#commit=20260729-9e593bb18ea69cc5095e012465dcd675a822ed0d'
 )
 _opt_VCPKG_COMMIT_ID="$(_fn_VCL "${_pkgver}" -ge "${_VCL[@]}")"; unset _VCL
 _srcdirvc="vcpkg-${_opt_VCPKG_COMMIT_ID##*-}"
@@ -494,23 +495,6 @@ EOF
      false
   fi
 
-  # Refresh Cargo.lock for any patched Cargo.toml changes (e.g. bindgen version bump).
-  # cargo build --locked in build.py requires the lock to match the manifests.
-  set +u; msg2 'cargo update (bindgen)'; set -u
-  _bindgen_err="$(mktemp)"
-  if ! cargo update -p bindgen 2>"${_bindgen_err}"; then
-    if grep -q "specification \`bindgen\` is ambiguous" "${_bindgen_err}"; then
-      while IFS= read -r _spec; do
-        msg2 "cargo update -p ${_spec}"
-        cargo update -p "${_spec}"
-      done < <(grep -oE 'bindgen@[0-9]+\.[0-9]+\.[0-9]+' "${_bindgen_err}" | sort -u)
-    else
-      cat "${_bindgen_err}" >&2
-      rm -f "${_bindgen_err}"
-      false
-    fi
-  fi
-  rm -f "${_bindgen_err}"
 }
 
 build() {
@@ -537,10 +521,24 @@ build() {
   ${_opt_NICE} "${_srcdirvc}/vcpkg" install "${_vcextra[@]}" --x-install-root="${VCPKG_ROOT}/installed" "${_vcpkg[@]}" "${_opt_hwcodec_vc[@]}"
 
   cd "${_srcdir}"
+    # Flutter's Linux CMakeLists.txt reads ./target even when Cargo writes to
+    # an external CARGO_TARGET_DIR.
+    if [ -n "${CARGO_TARGET_DIR:-}" ]; then
+      local _cargo_target_dir
+      _cargo_target_dir="$(realpath -m "${CARGO_TARGET_DIR}")"
+      if [ ! -e target ] && [ ! -L target ]; then
+        ln -s "${_cargo_target_dir}" target
+      elif [ "$(realpath -m target)" != "${_cargo_target_dir}" ]; then
+        error "target points elsewhere; expected ${_cargo_target_dir}"
+        return 1
+      fi
+    fi
     set +u; msg2 'Build rustdesk Flutter'; set -u
     _fn_setclang
+    # GCC's private intrinsic headers are incompatible with Clang (ring/OpenSSL).
+    # Let Clang use its own resource headers even if CPATH was set by the caller.
+    unset CPATH
     set -x
-    export CPATH="$(clang -v 2>&1 | grep "Selected GCC installation: " | cut -d' ' -f4-)/include"
     export CARGO_INCREMENTAL=0
     local _FVC _FBIN; _fn_setvars
     export PATH="${_FBIN}:${srcdir}/flutter/bin:${PATH}"
@@ -552,7 +550,20 @@ build() {
     pushd flutter ; flutter clean; flutter pub get ; popd
     local _CGdefault=~/.cargo
     local _CARGO_HOME_RUSTDESK="${CARGO_HOME:-${_CGdefault}}"
-    "${_CARGO_HOME_RUSTDESK}"/bin/flutter_rust_bridge_codegen --rust-input ./src/flutter_ffi.rs --dart-output ./flutter/lib/generated_bridge.dart
+    # ffigen does not always find Clang's builtin stdbool.h on this system.
+    # Without it, the generator silently turns Dart bool into a function pointer.
+    local _clang_include
+    _clang_include="$(clang -print-resource-dir)/include"
+    test -f "${_clang_include}/stdbool.h" || { error "Clang stdbool.h not found in ${_clang_include}"; return 1; }
+    "${_CARGO_HOME_RUSTDESK}"/bin/flutter_rust_bridge_codegen \
+      --rust-input ./src/flutter_ffi.rs \
+      --dart-output ./flutter/lib/generated_bridge.dart \
+      --c-output ./flutter/macos/Runner/bridge_generated.h \
+      --llvm-compiler-opts="-I${_clang_include}"
+    if grep -Eq '^typedef bool =|ffi\.Pointer<bool>' ./flutter/lib/generated_bridge.dart; then
+      error 'flutter_rust_bridge generated invalid Dart bool bindings'
+      return 1
+    fi
     if :; then
       find "${_CARGO_HOME_RUSTDESK}/git" -type 'f' -name 'mkvparser.cc' -execdir sh -c "patch --no-backup-if-mismatch -Nup0 -i \"${srcdir}/0003-mkvparser.cc-cstdint.patch\"; rm -f mkvparser.cc.rej; true" ';'
     fi
@@ -573,11 +584,11 @@ package() {
   set -u
   cd "${_srcdir}"
 
-    install -d "${pkgdir}/usr/lib/"
-    cp -pr 'flutter/build/linux/x64/release/bundle' "${pkgdir}/usr/lib/"
-    mv "${pkgdir}/usr/lib/"{bundle,${_pkgname}}
-      install -d "${pkgdir}/usr/bin/"
-      ln -s -t "${pkgdir}/usr/bin/" "/usr/lib/${_pkgname}/${_pkgname}"
+    install -d "${pkgdir}/usr/lib/" "${pkgdir}/usr/bin/"
+    # Replace the previous staged bundle on reruns instead of nesting bundle/.
+    rm -rf -- "${pkgdir}/usr/lib/${_pkgname}" "${pkgdir}/usr/lib/bundle"
+    cp -pr 'flutter/build/linux/x64/release/bundle' "${pkgdir}/usr/lib/${_pkgname}"
+    ln -sfn "/usr/lib/${_pkgname}/${_pkgname}" "${pkgdir}/usr/bin/${_pkgname}"
 
   install -Dm0644 "res/${_pkgname}.service" -t "${pkgdir}/usr/lib/systemd/system/"
 

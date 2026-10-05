@@ -14,15 +14,14 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 | `0000-disable-update-check@rustdesk.patch` | Disables the built-in update nag |
 | `0002-screen_retriever@rustdesk.patch` | Screen retriever compatibility fix |
 | `0003-mkvparser.cc-cstdint.patch` | C++17 `<cstdint>` include fix for mkvparser |
-| `0005-bindgen-clang22@rustdesk.patch` | bindgen compatibility fix for Clang 22 |
 
 ## Current version
 
-**RustDesk 1.4.9** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `120deac3`
+**RustDesk 1.5.0** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `9e593bb1`
 
 ## Download
 
-Prebuilt artifacts are attached to the [latest release](https://github.com/0xra0/rustdesk_build/releases/latest):
+The artifacts listed here are for 1.4.9 on the [build releases page](https://github.com/0xra0/rustdesk_build/releases). Build the 1.5.0 scripts below to produce updated packages.
 
 | Asset | Target |
 |-------|--------|
