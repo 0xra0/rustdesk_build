@@ -21,17 +21,17 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 
 ## Download
 
-The artifacts listed here are for 1.4.9 on the [build releases page](https://github.com/0xra0/rustdesk_build/releases). Build the 1.5.0 scripts below to produce updated packages.
+Download the 1.5.0 builds from the [v1.5.0 release](https://github.com/0xra0/rustdesk_build/releases/tag/v1.5.0).
 
 | Asset | Target |
 |-------|--------|
-| `rustdesk-1.4.9-x86_64.zip` | Linux x86_64 |
-| `rustdesk-1.4.9-aarch64.apk` | Android aarch64 |
+| `rustdesk-1.5.0-x86_64.zip` | Linux x86_64 |
+| `rustdesk-1.5.0-aarch64.apk` | Android aarch64 |
 
 The Linux zip contains a `usr/` tree and its `usr/bin/rustdesk` is an absolute symlink, so it must be extracted at the filesystem root:
 
 ```bash
-sudo unzip -o rustdesk-1.4.9-x86_64.zip -d /
+sudo unzip -o rustdesk-1.5.0-x86_64.zip -d /
 ```
 
 To run RustDesk as a background service:
