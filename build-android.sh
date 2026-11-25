@@ -6,7 +6,7 @@
 #   Default target: aarch64
 #
 # Required environment / tools (auto-detected where possible):
-#   ANDROID_NDK_HOME  — path to NDK r27c (detected from common install locations)
+#   ANDROID_NDK_HOME  — path to NDK r28c (detected from common install locations)
 #   ANDROID_SDK_ROOT  — path to Android SDK (detected from common install locations)
 #   JAVA_HOME         — JDK 17 (detected from common install locations)
 #   flutter           — must be on PATH (version 3.24.5)

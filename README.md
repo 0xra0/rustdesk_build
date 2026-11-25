@@ -15,6 +15,7 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 | `0000-disable-update-check@rustdesk.patch` | Disables the built-in update nag |
 | `0002-screen_retriever@rustdesk.patch` | Screen retriever compatibility fix |
 | `0003-mkvparser.cc-cstdint.patch` | Fixes mkvparser.cc anonymous-union scoping and `<stdint.h>` include for clang 23+ |
+| `0005-bindgen-clang22@rustdesk.patch` | Pins bindgen 0.72.1 for clang 22+ (optional, not applied by default) |
 
 ## Current version
 
