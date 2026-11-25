@@ -9,7 +9,7 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 | `build.sh` | Linux build script |
 | `build-android.sh` | Android APK build script |
 | `install.sh` | Installs the built Linux bundle from `pkg/` onto the system |
-| `server/docker-compose.yml` | Self-hosted server stack (hbbs + hbbr behind Tailscale) |
+| `server/docker-compose.yml` | Self-hosted server stack (hbbs + hbbr behind Tailscale) — works with Docker or Kiri |
 | `server/.env.example` | Template for the server's `.env` |
 | `server/id_ed25519.pub` | Server public key, used as the client's **Key** field |
 | `0000-disable-update-check@rustdesk.patch` | Disables the built-in update nag |
@@ -96,7 +96,7 @@ APKs are written to the script directory.
 
 ## Self-hosted server
 
-The `server/` directory contains a Docker Compose stack that runs the RustDesk relay and rendezvous server behind [Tailscale](https://tailscale.com/), so no public ports need to be exposed. The `hbbs` command in `docker-compose.yml` hardcodes the relay address as the Tailscale IP (`100.76.163.103:21117`) — update this if your node gets a different IP.
+The `server/` directory contains a Compose stack that runs the RustDesk relay and rendezvous server behind [Tailscale](https://tailscale.com/), so no public ports need to be exposed. The `hbbs` command in `docker-compose.yml` hardcodes the relay address as the Tailscale IP (`100.76.163.103:21117`) — update this if your node gets a different IP.
 
 Copy the environment template and fill in a [Tailscale auth key](https://login.tailscale.com/admin/settings/keys):
 
@@ -104,8 +104,19 @@ Copy the environment template and fill in a [Tailscale auth key](https://login.t
 cd server
 cp .env.example .env
 $EDITOR .env
-docker compose up -d
 ```
+
+Bring the stack up with either **Docker** or **Kiri** (a lightweight Docker-compatible runtime — use whichever is installed):
+
+```bash
+# Docker
+docker compose up -d
+
+# Kiri (drop-in replacement, same Compose file)
+kiri compose up -d
+```
+
+Both use the same `docker-compose.yml` — no changes are needed when switching between them.
 
 Then, in the RustDesk client:
 
