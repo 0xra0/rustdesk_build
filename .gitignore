@@ -6,6 +6,8 @@ pkg/
 *.tar.bz2
 *.tar.zst
 *.apk
+*.zip
 fvm-cache/
 server/.env
 PKGBUILD
+*.log

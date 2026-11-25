@@ -124,7 +124,7 @@ _fn_hwcodec() {
 # ── Package identity ──────────────────────────────────────────────────────────
 _pkgname='rustdesk'
 pkgname="${_pkgname}"
-_pkgver='1.5.0'
+_pkgver='1.5.3'
 pkgver="${_pkgver//-/.}"
 pkgrel=1
 _sfx=''
@@ -148,6 +148,7 @@ _HBB=(
   '1.4.8:20260604-387603f47cbb15c0d3dc3d67ae3396d3eb707daf'
   '1.4.9:20260702-7e1c392c62d39c364127307cd408421dd5f8cfb0'
   '1.5.0:20260923-229b904508364c8997aad0fb5af57effac859f60'
+  '1.5.3:20261028-fae47e024dd83cef6aaecde0aa7d11731df11649'
 )
 _pkgverhbb="$(_fn_VCL "${_pkgver}" -eq "${_HBB[@]}")"; unset _HBB
 test "$(_vercmp "${_pkgver}" '1.3.7')" -lt 0 -o ! -z "${_pkgverhbb}" \
@@ -565,7 +566,9 @@ build() {
       return 1
     fi
     if :; then
-      find "${_CARGO_HOME_RUSTDESK}/git" -type 'f' -name 'mkvparser.cc' -execdir sh -c "patch --no-backup-if-mismatch -Nup0 -i \"${srcdir}/0003-mkvparser.cc-cstdint.patch\"; rm -f mkvparser.cc.rej; true" ';'
+      # find -execdir requires '.' not be in PATH; strip it temporarily
+      ( PATH="$(echo "${PATH}" | tr ':' '\n' | grep -xvF '.' | tr '\n' ':' | sed 's/:$//')"; export PATH; \
+        find "${_CARGO_HOME_RUSTDESK}/git" -type 'f' -name 'mkvparser.cc' -execdir sh -c "patch --no-backup-if-mismatch -Nup0 -i \"${srcdir}/0003-mkvparser.cc-cstdint.patch\"; rm -f mkvparser.cc.rej; true" ';' )
     fi
     if [ "${_opt_BUILD_PY}" -ne 0 ]; then
       ${_opt_NICE} ./build.py --flutter "${_opt_hwcodec_py[@]}"

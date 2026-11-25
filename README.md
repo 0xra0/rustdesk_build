@@ -8,30 +8,31 @@ Custom build scripts and patches for [RustDesk](https://rustdesk.com/) — an op
 |------|---------|
 | `build.sh` | Linux build script |
 | `build-android.sh` | Android APK build script |
+| `install.sh` | Installs the built Linux bundle from `pkg/` onto the system |
 | `server/docker-compose.yml` | Self-hosted server stack (hbbs + hbbr behind Tailscale) |
 | `server/.env.example` | Template for the server's `.env` |
 | `server/id_ed25519.pub` | Server public key, used as the client's **Key** field |
 | `0000-disable-update-check@rustdesk.patch` | Disables the built-in update nag |
 | `0002-screen_retriever@rustdesk.patch` | Screen retriever compatibility fix |
-| `0003-mkvparser.cc-cstdint.patch` | C++17 `<cstdint>` include fix for mkvparser |
+| `0003-mkvparser.cc-cstdint.patch` | Fixes mkvparser.cc anonymous-union scoping and `<stdint.h>` include for clang 23+ |
 
 ## Current version
 
-**RustDesk 1.5.0** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `9e593bb1`
+**RustDesk 1.5.3** — Flutter 3.24.5 · flutter\_rust\_bridge 1.80.1 · vcpkg `9e593bb1`
 
 ## Download
 
-Download the 1.5.0 builds from the [v1.5.0 release](https://github.com/0xra0/rustdesk_build/releases/tag/v1.5.0).
+Download the 1.5.3 builds from the [v1.5.3 release](https://github.com/0xra0/rustdesk_build/releases/tag/v1.5.3).
 
 | Asset | Target |
 |-------|--------|
-| `rustdesk-1.5.0-x86_64.zip` | Linux x86_64 |
-| `rustdesk-1.5.0-aarch64.apk` | Android aarch64 |
+| `rustdesk-1.5.3-x86_64.zip` | Linux x86_64 |
+| `rustdesk-1.5.3-aarch64.apk` | Android aarch64 |
 
 The Linux zip contains a `usr/` tree and its `usr/bin/rustdesk` is an absolute symlink, so it must be extracted at the filesystem root:
 
 ```bash
-sudo unzip -o rustdesk-1.5.0-x86_64.zip -d /
+sudo unzip -o rustdesk-1.5.3-x86_64.zip -d /
 ```
 
 To run RustDesk as a background service:
@@ -66,6 +67,14 @@ bash build.sh
 
 The packaged bundle lands in `pkg/`, laid out as a `usr/` tree matching the release zip.
 
+### Install
+
+Install the built Linux package onto the system (supports runit and systemd, and preserves active service supervision):
+
+```bash
+sudo bash install.sh
+```
+
 ## Android build
 
 Requires Android SDK, NDK r28c, JDK 17, Flutter 3.24.5, and Rust (via rustup).
@@ -86,7 +95,7 @@ APKs are written to the script directory.
 
 ## Self-hosted server
 
-The `server/` directory contains a Docker Compose stack that runs the RustDesk relay and rendezvous server behind [Tailscale](https://tailscale.com/), so no public ports need to be exposed.
+The `server/` directory contains a Docker Compose stack that runs the RustDesk relay and rendezvous server behind [Tailscale](https://tailscale.com/), so no public ports need to be exposed. The `hbbs` command in `docker-compose.yml` hardcodes the relay address as the Tailscale IP (`100.76.163.103:21117`) — update this if your node gets a different IP.
 
 Copy the environment template and fill in a [Tailscale auth key](https://login.tailscale.com/admin/settings/keys):
 
@@ -99,8 +108,8 @@ docker compose up -d
 
 Then, in the RustDesk client:
 
-- Set **ID/Relay Server** to the Tailscale hostname (`TS_HOSTNAME`, default `rustdesk`).
-- Set **Key** to the contents of `server/id_ed25519.pub` — `hbbs` runs with `-k _`, so clients that don't present the key are rejected.
+- Set **ID/Relay Server** to the Tailscale IP (`100.76.163.103`) or MagicDNS hostname (`rustdesk`).
+- Set **Key** to `pMY57cPqlg0ehRUY+XOuUj9mH7MzpojP+9kMDMmUrpI=` (the contents of `server/id_ed25519.pub`) — `hbbs` runs with `-k _`, so clients that don't present the key are rejected.
 
 ## Hardware codecs (H.264 / H.265)
 

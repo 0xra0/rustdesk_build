@@ -23,7 +23,7 @@ _RUST_VERSION='1.75'
 _CARGO_NDK_VERSION='3.1.2'
 _NDK_VERSION='r28c'
 _FLUTTER_VERSION='3.24.5'
-_PKGVER='1.5.0'
+_PKGVER='1.5.3'
 _FLUTTER_PATCH='.github/patches/flutter_3.24.4_dropdown_menu_enableFilter.diff'
 _FRBVER='1.80.1'
 
@@ -120,6 +120,10 @@ if [ -x "${_local_flutter}/flutter" ]; then
   export PATH="${_local_flutter}:${PATH}"
   msg2 "Using local flutter: ${_local_flutter}"
 fi
+
+# Flutter 3.24+ resolves its own JDK independently of JAVA_HOME and may pick a
+# system default (e.g. Java 25) that Gradle 8.x cannot run. Pin it explicitly.
+command -v flutter &>/dev/null && flutter config --jdk-dir "${JAVA_HOME}" >/dev/null 2>&1 || true
 
 # ── Verify flutter ────────────────────────────────────────────────────────────
 command -v flutter &>/dev/null || error "flutter not found on PATH."
